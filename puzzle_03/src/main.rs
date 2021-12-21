@@ -26,7 +26,10 @@ fn main() {
   for shift in (1..(bits + 1)).rev() {
     let mask = 1 << (shift - 1);
     for oxy_co2 in 0..=1 {
-      let total = input.iter().filter(|x| (**x >> shift) == (oxy_co2_masks[oxy_co2] >> shift)).count();
+      let total = input
+        .iter()
+        .filter(|x| (**x >> shift) == (oxy_co2_masks[oxy_co2] >> shift))
+        .count();
       let ones = input
         .iter()
         .filter(|x| (**x >> shift) == (oxy_co2_masks[oxy_co2] >> shift) && (**x & mask) != 0)
