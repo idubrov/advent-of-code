@@ -8,4 +8,5 @@ members = [
     "puzzle_06",
     "puzzle_07",
     "puzzle_08",
+    "puzzle_09",
 ]
