@@ -7,9 +7,7 @@ struct State {
 
 impl State {
   fn new(fishes: &[i32]) -> State {
-    let mut state = State {
-      fish: [0; 9],
-    };
+    let mut state = State { fish: [0; 9] };
     for fish in fishes {
       state.fish[*fish as usize] += 1;
     }
@@ -27,7 +25,8 @@ impl State {
 
 fn main() {
   let buf = std::io::BufReader::new(std::fs::File::open("puzzle_06/src/input.txt").unwrap());
-  let fish = buf.lines()
+  let fish = buf
+    .lines()
     .next()
     .unwrap()
     .unwrap()

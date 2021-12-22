@@ -1,6 +1,5 @@
 use std::io::BufRead;
 
-
 #[derive(Debug)]
 struct Input {
   pattern: Vec<String>,
@@ -8,16 +7,7 @@ struct Input {
 }
 
 const DIGITS: [i32; 10] = [
-  0b1110111,
-  0b100100,
-  0b1011101,
-  0b1101101,
-  0b101110,
-  0b1101011,
-  0b1111011,
-  0b100101,
-  0b1111111,
-  0b1101111,
+  0b1110111, 0b100100, 0b1011101, 0b1101101, 0b101110, 0b1101011, 0b1111011, 0b100101, 0b1111111, 0b1101111,
 ];
 
 fn digit_of(input: &str, permut: &[i32; 7]) -> Option<usize> {
@@ -34,11 +24,15 @@ impl std::str::FromStr for Input {
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     let mut it = s.split("|");
     let (left, right) = (it.next().unwrap().trim(), it.next().unwrap().trim());
-    let pattern = left.split_whitespace().map(|x| x.trim().to_owned()).collect::<Vec<String>>();
-    let digits = right.split_whitespace().map(|x| x.trim().to_owned()).collect::<Vec<String>>();
-    Ok(Input {
-      pattern, digits,
-    })
+    let pattern = left
+      .split_whitespace()
+      .map(|x| x.trim().to_owned())
+      .collect::<Vec<String>>();
+    let digits = right
+      .split_whitespace()
+      .map(|x| x.trim().to_owned())
+      .collect::<Vec<String>>();
+    Ok(Input { pattern, digits })
   }
 }
 
@@ -60,9 +54,11 @@ fn generate(k: usize, current: &mut Permutation, permuts: &mut Vec<Permutation>)
 }
 
 fn main() {
-
   let buf = std::io::BufReader::new(std::fs::File::open("puzzle_08/src/input.txt").unwrap());
-  let inputs = buf.lines().map(|line| line.unwrap().parse().unwrap()).collect::<Vec<Input>>();
+  let inputs = buf
+    .lines()
+    .map(|line| line.unwrap().parse().unwrap())
+    .collect::<Vec<Input>>();
   let mut total = 0;
   for input in &inputs {
     for dig in &input.digits {

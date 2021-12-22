@@ -18,11 +18,15 @@ impl FromStr for Line {
     let (left, right) = (it.next().unwrap(), it.next().unwrap());
     let mut left = left.trim().split(",");
     let mut right = right.trim().split(",");
-    let (x1, y1) = (left.next().unwrap().parse().unwrap(), left.next().unwrap().parse().unwrap());
-    let (x2, y2) = (right.next().unwrap().parse().unwrap(), right.next().unwrap().parse().unwrap());
-    Ok(Line {
-      x1, y1, x2, y2
-    })
+    let (x1, y1) = (
+      left.next().unwrap().parse().unwrap(),
+      left.next().unwrap().parse().unwrap(),
+    );
+    let (x2, y2) = (
+      right.next().unwrap().parse().unwrap(),
+      right.next().unwrap().parse().unwrap(),
+    );
+    Ok(Line { x1, y1, x2, y2 })
   }
 }
 
@@ -36,11 +40,7 @@ impl Board {
   fn new(width: i32, height: i32) -> Board {
     let mut board = Vec::new();
     board.resize((width * height) as usize, 0);
-    Board {
-      width,
-      height,
-      board,
-    }
+    Board { width, height, board }
   }
 
   fn draw_straight(&mut self, line: &Line) {
@@ -73,8 +73,6 @@ impl Board {
     }
   }
 
-
-
   fn overlaps(&self) -> usize {
     self.board.iter().filter(|x| **x > 1).count()
   }
@@ -92,12 +90,26 @@ impl Display for Board {
   }
 }
 
-
 fn main() {
   let buf = std::io::BufReader::new(std::fs::File::open("puzzle_05/src/input.txt").unwrap());
-  let input = buf.lines().map(|line| line.unwrap().parse().unwrap()).collect::<Vec<Line>>();
-  let width = input.iter().map(|line| line.x1).max().max(input.iter().map(|line| line.x2).max()).unwrap() + 1;
-  let height = input.iter().map(|line| line.y1).max().max(input.iter().map(|line| line.y2).max()).unwrap() + 1;
+  let input = buf
+    .lines()
+    .map(|line| line.unwrap().parse().unwrap())
+    .collect::<Vec<Line>>();
+  let width = input
+    .iter()
+    .map(|line| line.x1)
+    .max()
+    .max(input.iter().map(|line| line.x2).max())
+    .unwrap()
+    + 1;
+  let height = input
+    .iter()
+    .map(|line| line.y1)
+    .max()
+    .max(input.iter().map(|line| line.y2).max())
+    .unwrap()
+    + 1;
   let mut board = Board::new(width, height);
   for line in &input {
     board.draw_straight(line);

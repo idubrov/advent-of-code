@@ -11,7 +11,11 @@ impl Book {
   fn fold_y(&mut self, y: usize) {
     for x in 0..self.width {
       for delta in 0..y {
-        self.map[(y - 1 - delta) * self.stride + x] |= self.map.get((y + 1 + delta) * self.stride + x).copied().unwrap_or(false);
+        self.map[(y - 1 - delta) * self.stride + x] |= self
+          .map
+          .get((y + 1 + delta) * self.stride + x)
+          .copied()
+          .unwrap_or(false);
       }
     }
     self.height = y;
@@ -20,7 +24,11 @@ impl Book {
   fn fold_x(&mut self, x: usize) {
     for y in 0..self.height {
       for delta in 0..x {
-        self.map[y * self.stride + (x - 1 - delta)] |= self.map.get(y * self.stride + (x + 1 + delta)).copied().unwrap_or(false);
+        self.map[y * self.stride + (x - 1 - delta)] |= self
+          .map
+          .get(y * self.stride + (x + 1 + delta))
+          .copied()
+          .unwrap_or(false);
       }
     }
     self.width = x;

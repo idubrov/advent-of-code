@@ -4,7 +4,6 @@ struct Map {
   map: Vec<Vec<u8>>,
 }
 
-
 impl Map {
   fn walk(&self, lowest: &mut Vec<usize>, visit: &mut Vec<(isize, isize)>) {
     while !visit.is_empty() {
@@ -54,11 +53,8 @@ fn main() {
       line
     })
     .collect::<Vec<_>>();
-  let map = Map {
-    map,
-  };
+  let map = Map { map };
   eprintln!("{}", map.shortest());
-
 
   // generate larger map
   let width = map.map[0].len();
@@ -75,8 +71,6 @@ fn main() {
       mega.push(line);
     }
   }
-  let mega = Map {
-   map: mega,
-  };
+  let mega = Map { map: mega };
   eprintln!("{}", mega.shortest());
 }

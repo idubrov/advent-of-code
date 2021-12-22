@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::io::BufRead;
 
-
-fn next_pairs(input: &HashMap<(char, char), usize>, dict: &HashMap<(char, char), char>) -> HashMap<(char, char), usize> {
+fn next_pairs(
+  input: &HashMap<(char, char), usize>,
+  dict: &HashMap<(char, char), char>,
+) -> HashMap<(char, char), usize> {
   let mut out = HashMap::new();
   for (key, count) in input {
     if let Some(ch) = dict.get(key) {
@@ -37,13 +39,18 @@ fn main() {
     *input.entry((it.next().unwrap(), it.next().unwrap())).or_default() += 1;
   }
   *input.entry(('_', line.chars().next().unwrap())).or_default() += 1;
-  *input.entry((line[line.len() - 1..].chars().next().unwrap(), '_')).or_default() += 1;
+  *input
+    .entry((line[line.len() - 1..].chars().next().unwrap(), '_'))
+    .or_default() += 1;
 
   assert!(lines.next().unwrap().unwrap().is_empty());
   let mut dict = HashMap::new();
   for line in lines {
     let mut it = line.as_ref().unwrap().split(" -> ");
-    let (pat, ins) = (it.next().unwrap().to_owned(), it.next().unwrap().chars().next().unwrap());
+    let (pat, ins) = (
+      it.next().unwrap().to_owned(),
+      it.next().unwrap().chars().next().unwrap(),
+    );
     let mut it = pat.chars();
     dict.insert((it.next().unwrap(), it.next().unwrap()), ins);
   }

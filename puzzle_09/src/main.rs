@@ -36,24 +36,19 @@ impl Map {
         return (x, y);
       }
     }
-
   }
 }
 
 fn main() {
   let buf = std::io::BufReader::new(std::fs::File::open("puzzle_09/src/input.txt").unwrap());
-  let map = buf
-    .lines()
-    .map(|line| line.unwrap()).collect::<Vec<String>>();
-  let map = Map {
-    map,
-  };
+  let map = buf.lines().map(|line| line.unwrap()).collect::<Vec<String>>();
+  let map = Map { map };
 
   let mut total = 0;
   for y in 0..map.map.len() as isize {
     for x in 0..map.map[0].len() as isize {
-      if map.lowest(x , y) {
-        total += 1 + map.at(x , y ) as usize;
+      if map.lowest(x, y) {
+        total += 1 + map.at(x, y) as usize;
       }
     }
   }
@@ -65,7 +60,7 @@ fn main() {
   let width = map.map[0].len() as isize;
   for y in 0..map.map.len() as isize {
     for x in 0..width as isize {
-      if map.at(x , y ) != 9 {
+      if map.at(x, y) != 9 {
         let (to_x, to_y) = map.flows_to(x, y);
         counts[(to_y * width + to_x) as usize] += 1;
       }

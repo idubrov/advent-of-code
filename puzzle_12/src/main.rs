@@ -35,9 +35,7 @@ impl Map {
 fn main() {
   let buf = std::io::BufReader::new(std::fs::File::open("puzzle_12/src/input.txt").unwrap());
 
-  let mut map = Map {
-    map: HashMap::new(),
-  };
+  let mut map = Map { map: HashMap::new() };
   for line in buf.lines() {
     let line = line.unwrap();
     let mut it = line.split("-");

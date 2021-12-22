@@ -36,9 +36,7 @@ fn is_match(left: u8, right: u8) -> bool {
 
 fn main() {
   let buf = std::io::BufReader::new(std::fs::File::open("puzzle_10/src/input.txt").unwrap());
-  let program = buf
-    .lines()
-    .collect::<Result<Vec<String>, _>>().unwrap();
+  let program = buf.lines().collect::<Result<Vec<String>, _>>().unwrap();
 
   let mut score = 0;
   let mut complete_scores = Vec::new();
@@ -62,7 +60,12 @@ fn main() {
     }
 
     if index == current.len() {
-      complete_scores.push(current.iter().rev().fold(0u128, |acc, x| acc * 5 + complete_score_of(*x)));
+      complete_scores.push(
+        current
+          .iter()
+          .rev()
+          .fold(0u128, |acc, x| acc * 5 + complete_score_of(*x)),
+      );
     }
   }
   eprintln!("{}", score);
