@@ -61,9 +61,9 @@ impl Cube {
     self.coords.iter().map(|c| (c.1 + 1 - c.0) as usize).product()
   }
   fn overlaps(&self, other: &Cube) -> bool {
-    (0..3).into_iter().all(|coord| {
-      self.coords[coord].0 <= other.coords[coord].1 && self.coords[coord].1 >= other.coords[coord].0
-    })
+    (0..3)
+      .into_iter()
+      .all(|coord| self.coords[coord].0 <= other.coords[coord].1 && self.coords[coord].1 >= other.coords[coord].0)
   }
 }
 
@@ -71,7 +71,7 @@ struct World {
   cubes: Vec<Cube>,
 }
 
-fn split(mut cubes: &mut Vec<Cube>, coord: usize, split: i32) {
+fn split(cubes: &mut Vec<Cube>, coord: usize, split: i32) {
   for idx in 0..cubes.len() {
     if cubes[idx].coords[coord].0 <= split && split < cubes[idx].coords[coord].1 {
       let mut other = cubes[idx];
