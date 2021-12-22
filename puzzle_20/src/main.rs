@@ -54,7 +54,11 @@ fn enhance(image: &Image, tx: &str) -> Image {
     x: (x0, x1),
     y: (y0, y1),
     bits: result,
-    rest: if image.rest == '#' { tx.as_bytes()[511] as char } else { tx.as_bytes()[0] as char },
+    rest: if image.rest == '#' {
+      tx.as_bytes()[511] as char
+    } else {
+      tx.as_bytes()[0] as char
+    },
   }
 }
 

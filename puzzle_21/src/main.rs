@@ -42,12 +42,7 @@ fn advance(states: HashMap<State, usize>, w1: &mut usize, w2: &mut usize) -> Has
           continue;
         }
 
-        *result.entry(State {
-          p1,
-          p2,
-          s1,
-          s2,
-        }).or_default() += p2_count;
+        *result.entry(State { p1, p2, s1, s2 }).or_default() += p2_count;
       }
     }
   }
@@ -90,12 +85,15 @@ fn main() {
   let mut state = HashMap::new();
   let mut w1 = 0;
   let mut w2 = 0;
-  state.insert(State {
-    p1: start_p1,
-    p2: start_p2,
-    s1: 0,
-    s2: 0,
-  }, 1);
+  state.insert(
+    State {
+      p1: start_p1,
+      p2: start_p2,
+      s1: 0,
+      s2: 0,
+    },
+    1,
+  );
   while !state.is_empty() {
     state = advance(state, &mut w1, &mut w2);
   }

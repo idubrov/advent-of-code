@@ -37,7 +37,6 @@ struct ParseInfo {
   value: usize,
 }
 
-
 fn parse(cur: &mut Cursor) -> ParseInfo {
   let version = cur.read_u8(3);
   let tid = cur.read_u8(3);

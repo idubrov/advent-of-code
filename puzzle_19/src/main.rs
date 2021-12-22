@@ -38,27 +38,22 @@ const ALL_TRANSFORMS: [Transform; 24] = [
   Transform::X_NZ_Y,
   Transform::X_NY_NZ,
   Transform::X_Z_NY,
-
   Transform::NX_NZ_NY,
   Transform::NX_Y_NZ,
   Transform::NX_Z_Y,
   Transform::NX_NY_Z,
-
   Transform::Y_Z_X,
   Transform::Y_NX_Z,
   Transform::Y_NZ_NX,
   Transform::Y_X_NZ,
-
   Transform::NY_NX_NZ,
   Transform::NY_Z_NX,
   Transform::NY_X_Z,
   Transform::NY_NZ_X,
-
   Transform::Z_X_Y,
   Transform::Z_NY_X,
   Transform::Z_NX_NY,
   Transform::Z_Y_NX,
-
   Transform::NZ_NY_NX,
   Transform::NZ_X_NY,
   Transform::NZ_Y_X,
@@ -100,11 +95,7 @@ impl Transform {
       NZ_Y_X => (-z, y, x),
       NZ_NX_Y => (-z, -x, y),
     };
-    Pos {
-      x: i,
-      y: j,
-      z: k,
-    }
+    Pos { x: i, y: j, z: k }
   }
 }
 
@@ -150,30 +141,28 @@ fn main() {
     if line.trim().is_empty() {
     } else if line.starts_with("--- scanner") {
       if !beacons.is_empty() {
-        scanners.push(Scanner {
-          beacons,
-        });
+        scanners.push(Scanner { beacons });
       }
       beacons = Vec::new();
     } else {
       let mut it = line.split(",");
-      let (x, y, z) = (it.next().unwrap().parse().unwrap(), it.next().unwrap().parse().unwrap(), it.next().unwrap().parse().unwrap());
-      beacons.push(Pos {
-        x, y, z,
-      });
+      let (x, y, z) = (
+        it.next().unwrap().parse().unwrap(),
+        it.next().unwrap().parse().unwrap(),
+        it.next().unwrap().parse().unwrap(),
+      );
+      beacons.push(Pos { x, y, z });
     }
   }
   if !beacons.is_empty() {
-    scanners.push(Scanner {
-      beacons,
-    });
+    scanners.push(Scanner { beacons });
   }
 
   let first = scanners.remove(0);
   let mut world = World {
     scanner: vec![PlacedScanner {
       offset: Pos { x: 0, y: 0, z: 0 },
-      beacons: first.beacons.into_iter().collect()
+      beacons: first.beacons.into_iter().collect(),
     }],
   };
 
@@ -192,13 +181,20 @@ fn main() {
               };
 
               assert_eq!(tx.transform(src_beacon) + offset, *tgt_beacon);
-              let count = scanners[scanner].beacons.iter()
-                .filter(|b| tgt_scanner.beacons.contains(&(tx.transform(b) + offset))).count();
+              let count = scanners[scanner]
+                .beacons
+                .iter()
+                .filter(|b| tgt_scanner.beacons.contains(&(tx.transform(b) + offset)))
+                .count();
               if count >= 12 {
                 found = Some(scanner);
                 world.scanner.push(PlacedScanner {
                   offset,
-                  beacons: scanners[scanner].beacons.iter().map(|b| tx.transform(b) + offset).collect(),
+                  beacons: scanners[scanner]
+                    .beacons
+                    .iter()
+                    .map(|b| tx.transform(b) + offset)
+                    .collect(),
                 });
                 break 'iter;
               }
@@ -213,9 +209,9 @@ fn main() {
   let mut max_dist = 0;
   for first in &world.scanner {
     for second in &world.scanner {
-      let dist = (first.offset.x - second.offset.x).abs() +
-        (first.offset.y - second.offset.y).abs() +
-        (first.offset.z - second.offset.z).abs();
+      let dist = (first.offset.x - second.offset.x).abs()
+        + (first.offset.y - second.offset.y).abs()
+        + (first.offset.z - second.offset.z).abs();
       max_dist = max_dist.max(dist);
     }
   }
@@ -225,7 +221,6 @@ fn main() {
     result.extend(chunk.beacons);
   }
   eprintln!("{:?}", result.len());
-
 
   eprintln!("{}", max_dist);
 }

@@ -41,7 +41,6 @@ impl Line {
       _ => panic!(),
     }
   }
-
 }
 
 impl Add for Line {
