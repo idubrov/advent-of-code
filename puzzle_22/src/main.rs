@@ -60,48 +60,53 @@ impl Cube {
   fn volume(&self) -> usize {
     self.coords.iter().map(|c| (c.1 + 1 - c.0) as usize).product()
   }
+  fn overlaps(&self, other: &Cube) -> bool {
+    (0..3).into_iter().all(|coord| {
+      self.coords[coord].0 <= other.coords[coord].1 && self.coords[coord].1 >= other.coords[coord].0
+    })
+  }
 }
 
 struct World {
   cubes: Vec<Cube>,
 }
 
+fn split(mut cubes: &mut Vec<Cube>, coord: usize, split: i32) {
+  for idx in 0..cubes.len() {
+    if cubes[idx].coords[coord].0 <= split && split < cubes[idx].coords[coord].1 {
+      let mut other = cubes[idx];
+      other.coords[coord].0 = split + 1;
+      cubes.push(other);
+      cubes[idx].coords[coord].1 = split;
+    }
+  }
+}
+
 impl World {
   fn apply(&mut self, instruction: &Instruction) {
-    for coord in 0..3 {
-      self.split(coord, instruction.cube.coords[coord].0 - 1);
-      self.split(coord, instruction.cube.coords[coord].1)
-    }
-    self.remove_contained(&instruction.cube);
+    self.remove_intersection(&instruction.cube);
     if instruction.on {
       self.cubes.push(instruction.cube.clone());
     }
   }
 
-  fn split(&mut self, coord: usize, split: i32) {
+  fn remove_intersection(&mut self, cube: &Cube) {
     let mut extra = Vec::new();
-    for cube in &mut self.cubes {
-      if cube.coords[coord].0 <= split && split < cube.coords[coord].1 {
-        let mut other = cube.coords;
-        other[coord].0 = split + 1;
-        extra.push(Cube { coords: other });
-        cube.coords[coord].1 = split;
-      }
-    }
-    self.cubes.extend(extra.into_iter());
-  }
-
-  fn remove_contained(&mut self, cube: &Cube) {
     let mut i = 0;
     while i < self.cubes.len() {
-      if (0..3).into_iter().all(|coord| {
-        self.cubes[i].coords[coord].0 >= cube.coords[coord].0 && self.cubes[i].coords[coord].1 <= cube.coords[coord].1
-      }) {
-        self.cubes.swap_remove(i);
+      let current = self.cubes[i];
+      if current.overlaps(cube) {
+        let mut cubes = vec![self.cubes.swap_remove(i)];
+        for coord in 0..3 {
+          split(&mut cubes, coord, cube.coords[coord].0 - 1);
+          split(&mut cubes, coord, cube.coords[coord].1);
+        }
+        extra.extend(cubes.into_iter().filter(|c| !c.overlaps(cube)));
       } else {
         i += 1;
       }
     }
+    self.cubes.extend(extra);
   }
 
   fn volume(&self) -> usize {
