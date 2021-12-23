@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct Room {
-  room: u8,
-  depth: u8,
+  room: usize,
+  depth: usize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-struct Hall(u8);
+struct Hall(usize);
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
 enum Pos {
@@ -23,43 +23,42 @@ impl Pos {
     }
   }
 
-  fn is_room(&self, room: u8) -> bool {
+  fn is_room(&self, room: usize) -> bool {
     match self {
       Pos::R(r) if r.room == room => true,
       _ => false,
     }
   }
 
-  fn room(room: u8, depth: u8) -> Pos {
+  fn room(room: usize, depth: usize) -> Pos {
     Pos::R(Room { room, depth })
   }
 }
 
-fn distance(room: Room, hall: Hall) -> u8 {
+fn distance(room: Room, hall: Hall) -> usize {
   let coords = [0, 1, 3, 5, 7, 9, 10];
   let first = room.room * 2 + 2;
-  let second = coords[usize::from(hall.0)];
+  let second = coords[hall.0];
   let horizontal = if first < second { second - first } else { first - second };
   horizontal + 1 + room.depth
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
-struct State<const RS: usize>([Pos; RS]);
+struct State<const ROOMS: usize>([Pos; ROOMS]);
 
 const COST: [usize; 4] = [1, 10, 100, 1000];
 
-impl<const RS: usize> State<RS> {
-  const ROOMS: u8 = RS as u8;
-  const DEPTH: u8 = Self::ROOMS / 4;
+impl<const ROOMS: usize> State<ROOMS> {
+  const DEPTH: usize = ROOMS / 4;
 
-  fn room_for(idx: u8) -> u8 {
-    4 * idx / Self::ROOMS
+  fn room_for(idx: usize) -> usize {
+    4 * idx / ROOMS
   }
 
   fn is_completed(&self) -> bool {
-    (0..Self::ROOMS)
+    (0..ROOMS)
       .into_iter()
-      .all(|idx| (self.0[usize::from(idx)].is_room(Self::room_for(idx as u8))))
+      .all(|idx| (self.0[idx].is_room(Self::room_for(idx))))
   }
 
   fn path_clear(&self, room: Room, hall: Hall) -> bool {
@@ -100,17 +99,17 @@ impl<const RS: usize> State<RS> {
     path.iter().all(|p| !self.0.contains(&Pos::H(Hall(*p))))
   }
 
-  fn room_filled(&self, room: u8, from_depth: u8) -> bool {
+  fn room_filled(&self, room: usize, from_depth: usize) -> bool {
     (from_depth + 1..Self::DEPTH)
-      .all(|depth| Self::room_for(self.0.iter().position(|x| x == &Pos::room(room, depth)).unwrap() as u8) == room)
+      .all(|depth| Self::room_for(self.0.iter().position(|x| x == &Pos::room(room, depth)).unwrap()) == room)
   }
 
-  fn find_room(&self, room: u8) -> Option<Room> {
+  fn find_room(&self, room: usize) -> Option<Room> {
     for depth in (0..Self::DEPTH).rev() {
       let candidate = Room { room, depth };
       match self.0.iter().position(|x| x == &Pos::R(candidate)) {
         Some(occupant) => {
-          if (Self::room_for(occupant as u8)) != room {
+          if (Self::room_for(occupant)) != room {
             return None;
           }
         }
@@ -128,7 +127,7 @@ impl<const RS: usize> State<RS> {
       return Some(0);
     }
     let mut min_cost = None;
-    for idx in 0..Self::ROOMS {
+    for idx in 0..ROOMS {
       let my_room = Self::room_for(idx);
       let src = self.0[idx as usize];
       if src.is_room(my_room) && self.room_filled(my_room, src.as_room().unwrap().depth) {
@@ -148,7 +147,7 @@ impl<const RS: usize> State<RS> {
             }
             self.0[idx as usize] = Pos::H(Hall(hall));
             if self.path_clear(room, Hall(hall)) {
-              let delta_cost = usize::from(distance(room, Hall(hall))) * COST[usize::from(Self::room_for(idx))];
+              let delta_cost = distance(room, Hall(hall)) * COST[Self::room_for(idx)];
               let alt_cost = self.solve(visited).map(|cost| cost + delta_cost);
               min_cost = min_cost.or(alt_cost).min(alt_cost.or(min_cost));
             }
@@ -158,7 +157,7 @@ impl<const RS: usize> State<RS> {
           if let Some(room) = self.find_room(my_room) {
             self.0[idx as usize] = Pos::R(room);
             if self.path_clear(room, hall) {
-              let delta_cost = usize::from(distance(room, hall)) * COST[usize::from(Self::room_for(idx))];
+              let delta_cost = distance(room, hall) * COST[Self::room_for(idx)];
               let alt_cost = self.solve(visited).map(|cost| cost + delta_cost);
               min_cost = min_cost.or(alt_cost).min(alt_cost.or(min_cost));
             }
