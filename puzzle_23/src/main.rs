@@ -106,15 +106,14 @@ impl State {
     cost: usize,
     instr: &mut Vec<(Pos, Pos)>,
     visited: &mut HashMap<State, Option<usize>>,
-    min_cost: &mut usize,
-  ) {
-    // if visited.contains_key(&self) {
-    //   return
-    // }
-    if self.is_completed() {
-      *min_cost = (*min_cost).min(cost);
-      return;
+  ) -> Option<usize> {
+    if let Some(cost) = visited.get(&self) {
+      return *cost;
     }
+    if self.is_completed() {
+      return Some(0);
+    }
+    let mut min_cost = None;
     for idx in 0..DEPTH * 4 {
       let my_room = idx / DEPTH;
       let src = self.0[idx as usize];
@@ -139,7 +138,7 @@ impl State {
 
       if src.as_room().is_some() {
         for hall in 0..7 {
-          self.try_walk(idx, Pos::H(Hall(hall)), cost, instr, visited, min_cost);
+          self.try_walk(idx, Pos::H(Hall(hall)), cost, instr, visited, &mut min_cost);
         }
       } else {
         let bottom = Pos::R(Room {
@@ -161,18 +160,19 @@ impl State {
             room: my_room,
             depth: 0,
           });
-          self.try_walk(idx, target, cost, instr, visited, min_cost);
+          self.try_walk(idx, target, cost, instr, visited, &mut min_cost);
         } else {
           // take bottom spot
           let target = Pos::R(Room {
             room: my_room,
             depth: 1,
           });
-          self.try_walk(idx, target, cost, instr, visited, min_cost);
+          self.try_walk(idx, target, cost, instr, visited, &mut min_cost);
         }
       }
     }
-    visited.insert(self, None);
+    visited.insert(self, min_cost);
+    min_cost
   }
 
   fn try_walk(
@@ -182,7 +182,7 @@ impl State {
     cost: usize,
     instr: &mut Vec<(Pos, Pos)>,
     visited: &mut HashMap<State, Option<usize>>,
-    min_cost: &mut usize,
+    min_cost: &mut Option<usize>,
   ) {
     let src = self.0[idx as usize];
     instr.push((src, tgt));
@@ -191,8 +191,13 @@ impl State {
     if self.has_path(src, tgt) {
       let delta_cost = usize::from(distance(src, tgt)) * COST[(idx / 2) as usize];
       self.0[idx as usize] = tgt;
-      self
-        .solve(cost + delta_cost, instr, visited, min_cost)
+      let alt_cost = self
+        .solve(cost + delta_cost, instr, visited).map(|cost| cost + delta_cost);
+      if min_cost.is_none() {
+        *min_cost = alt_cost;
+      } else if alt_cost.is_some() && alt_cost.unwrap() < min_cost.unwrap() {
+        *min_cost = alt_cost;
+      }
     }
     self.0[idx as usize] = src;
     instr.pop();
@@ -222,7 +227,6 @@ fn main() {
   //   #D#A#A#C#   1  3  5  7
   //   #########
   //let state = State([3, 5, 0, 2, 4, 7, 1, 6]);
-  let mut min_cost = usize::MAX;
-  state.solve(0, &mut Vec::new(), &mut HashMap::new(), &mut min_cost);
-  println!("{}", min_cost);
+  let cost = state.solve(0, &mut Vec::new(), &mut HashMap::new()).unwrap();
+  println!("{}", cost);
 }
