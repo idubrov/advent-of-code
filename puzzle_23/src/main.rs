@@ -83,17 +83,17 @@ impl<const ROOMS: usize> State<ROOMS> {
     PATHS[room.room * 7 + hall.0]
       .iter()
       .map(|p| Pos::Hall(Hall(*p)))
-      .all(|p| self.occupant(&p).is_none())
+      .all(|p| self.occupant(p).is_none())
   }
 
-  fn occupant(&self, pos: &Pos) -> Option<usize> {
-    self.0.iter().position(|x| x == pos)
+  fn occupant(&self, pos: Pos) -> Option<usize> {
+    self.0.iter().position(|x| *x == pos)
   }
 
   fn room_filled(&self, room: usize, from_depth: usize) -> bool {
     (from_depth..Self::DEPTH).all(|depth| {
       self
-        .occupant(&Pos::room(room, depth))
+        .occupant(Pos::room(room, depth))
         .map_or(false, |occ| Self::room_for(occ) == room)
     })
   }
@@ -101,7 +101,7 @@ impl<const ROOMS: usize> State<ROOMS> {
   fn find_room_spot(&self, room: usize) -> Option<Room> {
     for depth in (0..Self::DEPTH).rev() {
       let candidate = Room { room, depth };
-      match self.occupant(&Pos::Room(candidate)) {
+      match self.occupant(Pos::Room(candidate)) {
         Some(occupant) if (Self::room_for(occupant)) != room => return None,
         None => return Some(candidate),
         _ => {}
@@ -129,10 +129,11 @@ impl<const ROOMS: usize> State<ROOMS> {
         // in room, want hall
         Pos::Room(room) => {
           for hall in 0..7 {
-            if self.0.iter().any(|p| p == &Pos::Hall(Hall(hall))) {
+            let target =  Pos::Hall(Hall(hall));
+            if self.occupant(target).is_some() {
               continue;
             }
-            self.0[idx as usize] = Pos::Hall(Hall(hall));
+            self.0[idx as usize] = target;
             if self.path_clear(room, Hall(hall)) {
               let delta_cost = distance(room, Hall(hall)) * COST[Self::room_for(idx)];
               let alt_cost = self.solve(visited).map(|cost| cost + delta_cost);
