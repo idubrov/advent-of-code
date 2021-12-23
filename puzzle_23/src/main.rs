@@ -29,30 +29,18 @@ impl Pos {
       _ => false,
     }
   }
-  
+
   fn room(room: u8, depth: u8) -> Pos {
-    Pos::R(Room {
-      room,
-      depth,
-    })
+    Pos::R(Room { room, depth })
   }
 }
 
-fn room_hall(from: Pos, to: Pos) -> (Room, Hall) {
-  match (from, to) {
-    (Pos::R(r), Pos::H(h)) => (r, h),
-    (Pos::H(h), Pos::R(r)) => (r, h),
-    _ => panic!(),
-  }
-}
-
-fn distance(from: Pos, to: Pos) -> u8 {
-  let (from, to) = room_hall(from, to);
+fn distance(room: Room, hall: Hall) -> u8 {
   let coords = [0, 1, 3, 5, 7, 9, 10];
-  let first = from.room * 2 + 2;
-  let second = coords[usize::from(to.0)];
+  let first = room.room * 2 + 2;
+  let second = coords[usize::from(hall.0)];
   let horizontal = if first < second { second - first } else { first - second };
-  horizontal + 1 + from.depth
+  horizontal + 1 + room.depth
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
@@ -60,7 +48,7 @@ struct State<const RS: usize>([Pos; RS]);
 
 const COST: [usize; 4] = [1, 10, 100, 1000];
 
-impl <const RS: usize> State<RS> {
+impl<const RS: usize> State<RS> {
   const ROOMS: u8 = RS as u8;
   const DEPTH: u8 = Self::ROOMS / 4;
 
@@ -69,63 +57,70 @@ impl <const RS: usize> State<RS> {
   }
 
   fn is_completed(&self) -> bool {
-    (0..Self::ROOMS).into_iter().all(|idx| (self.0[usize::from(idx)].is_room(Self::room_for(idx as u8))))
+    (0..Self::ROOMS)
+      .into_iter()
+      .all(|idx| (self.0[usize::from(idx)].is_room(Self::room_for(idx as u8))))
   }
 
-  fn has_path(&self, from: Pos, to: Pos) -> bool {
-    let (from, to) = room_hall(from, to);
-    let path = match (from.room, to.0) {
-      (0, 0) => [0, 1].as_slice(),
-      (0, 1) => &[1],
-      (0, 2) => &[2],
-      (0, 3) => &[2, 3],
-      (0, 4) => &[2, 3, 4],
-      (0, 5) => &[2, 3, 4, 5],
-      (0, 6) => &[2, 3, 4, 5, 6],
+  fn path_clear(&self, room: Room, hall: Hall) -> bool {
+    let path = match (room.room, hall.0) {
+      (0, 0) => [1].as_slice(),
+      (0, 1) => &[],
+      (0, 2) => &[],
+      (0, 3) => &[2],
+      (0, 4) => &[2, 3],
+      (0, 5) => &[2, 3, 4],
+      (0, 6) => &[2, 3, 4, 5],
 
-      (1, 0) => &[0, 1, 2],
-      (1, 1) => &[1, 2],
-      (1, 2) => &[2],
-      (1, 3) => &[3],
-      (1, 4) => &[3, 4],
-      (1, 5) => &[3, 4, 5],
-      (1, 6) => &[3, 4, 5, 6],
+      (1, 0) => &[1, 2],
+      (1, 1) => &[2],
+      (1, 2) => &[],
+      (1, 3) => &[],
+      (1, 4) => &[3],
+      (1, 5) => &[3, 4],
+      (1, 6) => &[3, 4, 5],
 
-      (2, 0) => &[0, 1, 2, 3],
-      (2, 1) => &[1, 2, 3],
-      (2, 2) => &[2, 3],
-      (2, 3) => &[3],
-      (2, 4) => &[4],
-      (2, 5) => &[4, 5],
-      (2, 6) => &[4, 5, 6],
+      (2, 0) => &[1, 2, 3],
+      (2, 1) => &[2, 3],
+      (2, 2) => &[3],
+      (2, 3) => &[],
+      (2, 4) => &[],
+      (2, 5) => &[4],
+      (2, 6) => &[4, 5],
 
-      (3, 0) => &[0, 1, 2, 3, 4],
-      (3, 1) => &[1, 2, 3, 4],
-      (3, 2) => &[2, 3, 4],
-      (3, 3) => &[3, 4],
-      (3, 4) => &[4],
-      (3, 5) => &[5],
-      (3, 6) => &[5, 6],
+      (3, 0) => &[1, 2, 3, 4],
+      (3, 1) => &[2, 3, 4],
+      (3, 2) => &[3, 4],
+      (3, 3) => &[4],
+      (3, 4) => &[],
+      (3, 5) => &[],
+      (3, 6) => &[5],
       (from, to) => panic!("{} {}", from, to),
     };
     path.iter().all(|p| !self.0.contains(&Pos::H(Hall(*p))))
   }
 
   fn room_filled(&self, room: u8, from_depth: u8) -> bool {
-    for depth in from_depth + 1..Self::DEPTH {
-      let candidate_room = Pos::R(Room { room, depth });
-      let occupant = self.0.iter().position(|x| x == &candidate_room).unwrap();
-      if Self::room_for(occupant as u8) != room {
-        return false;
-      }
-    }
-    true
+    (from_depth + 1..Self::DEPTH)
+      .all(|depth| Self::room_for(self.0.iter().position(|x| x == &Pos::room(room, depth)).unwrap() as u8) == room)
   }
 
-  fn solve(
-    mut self,
-    visited: &mut HashMap<Self, Option<usize>>,
-  ) -> Option<usize> {
+  fn find_room(&self, room: u8) -> Option<Room> {
+    for depth in (0..Self::DEPTH).rev() {
+      let candidate = Room { room, depth };
+      match self.0.iter().position(|x| x == &Pos::R(candidate)) {
+        Some(occupant) => {
+          if (Self::room_for(occupant as u8)) != room {
+            return None;
+          }
+        }
+        None => return Some(candidate),
+      }
+    }
+    None
+  }
+
+  fn solve(mut self, visited: &mut HashMap<Self, Option<usize>>) -> Option<usize> {
     if let Some(cost) = visited.get(&self) {
       return *cost;
     }
@@ -133,62 +128,47 @@ impl <const RS: usize> State<RS> {
       return Some(0);
     }
     let mut min_cost = None;
-    'outer: for idx in 0..Self::ROOMS {
+    for idx in 0..Self::ROOMS {
       let my_room = Self::room_for(idx);
       let src = self.0[idx as usize];
-      if src.is_room(my_room) {
-        if self.room_filled(my_room, src.as_room().unwrap().depth) {
+      if src.is_room(my_room) && self.room_filled(my_room, src.as_room().unwrap().depth) {
+        continue;
+      }
+      if let Pos::R(r) = src {
+        if (0..r.depth).any(|d| self.0.contains(&Pos::room(r.room, d))) {
           continue;
         }
       }
-      if let Pos::R(r) = src {
-        for d in 0..r.depth {
-          if self.0.contains(&Pos::R(Room { room: r.room, depth: d })) {
-            continue 'outer;
-          }
-        }
-      }
 
-      if src.as_room().is_some() {
-        for hall in 0..7 {
-          self.try_walk(idx, Pos::H(Hall(hall)), visited, &mut min_cost);
-        }
-      } else {
-        for depth in (0..Self::DEPTH).rev() {
-          let candidate_room = Pos::R(Room { room: my_room, depth });
-          if let Some(occupant) = self.0.iter().position(|x| x == &candidate_room) {
-            if (Self::room_for(occupant as u8)) != my_room {
-              continue 'outer;
+      match src {
+        Pos::R(room) => {
+          for hall in 0..7 {
+            if self.0.iter().any(|p| p == &Pos::H(Hall(hall))) {
+              continue;
             }
-            continue;
+            self.0[idx as usize] = Pos::H(Hall(hall));
+            if self.path_clear(room, Hall(hall)) {
+              let delta_cost = usize::from(distance(room, Hall(hall))) * COST[usize::from(Self::room_for(idx))];
+              let alt_cost = self.solve(visited).map(|cost| cost + delta_cost);
+              min_cost = min_cost.or(alt_cost).min(alt_cost.or(min_cost));
+            }
           }
-          self.try_walk(idx, candidate_room, visited, &mut min_cost);
-          break;
+        }
+        Pos::H(hall) => {
+          if let Some(room) = self.find_room(my_room) {
+            self.0[idx as usize] = Pos::R(room);
+            if self.path_clear(room, hall) {
+              let delta_cost = usize::from(distance(room, hall)) * COST[usize::from(Self::room_for(idx))];
+              let alt_cost = self.solve(visited).map(|cost| cost + delta_cost);
+              min_cost = min_cost.or(alt_cost).min(alt_cost.or(min_cost));
+            }
+          }
         }
       }
+      self.0[idx as usize] = src;
     }
     visited.insert(self, min_cost);
     min_cost
-  }
-
-  fn try_walk(
-    &mut self,
-    idx: u8,
-    tgt: Pos,
-    visited: &mut HashMap<Self, Option<usize>>,
-    min_cost: &mut Option<usize>,
-  ) {
-    let src = self.0[idx as usize];
-    // temporary remove for has_path!
-    self.0[idx as usize] = Pos::H(Hall(255));
-    if self.has_path(src, tgt) {
-      let delta_cost = usize::from(distance(src, tgt)) * COST[usize::from(Self::room_for(idx))];
-      self.0[idx as usize] = tgt;
-      let alt_cost = self
-        .solve(visited).map(|cost| cost + delta_cost);
-      *min_cost = (*min_cost).or(alt_cost).min(alt_cost.or(*min_cost));
-    }
-    self.0[idx as usize] = src;
   }
 }
 
