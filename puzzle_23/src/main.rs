@@ -29,6 +29,13 @@ impl Pos {
       _ => false,
     }
   }
+  
+  fn room(room: u8, depth: u8) -> Pos {
+    Pos::R(Room {
+      room,
+      depth,
+    })
+  }
 }
 
 fn room_hall(from: Pos, to: Pos) -> (Room, Hall) {
@@ -48,17 +55,21 @@ fn distance(from: Pos, to: Pos) -> u8 {
   horizontal + 1 + from.depth
 }
 
-// 2 or 4
-const DEPTH: u8 = 4;
-
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
-struct State([Pos; 4 * DEPTH as usize]);
+struct State<const RS: usize>([Pos; RS]);
 
 const COST: [usize; 4] = [1, 10, 100, 1000];
 
-impl State {
+impl <const RS: usize> State<RS> {
+  const ROOMS: u8 = RS as u8;
+  const DEPTH: u8 = Self::ROOMS / 4;
+
+  fn room_for(idx: u8) -> u8 {
+    4 * idx / Self::ROOMS
+  }
+
   fn is_completed(&self) -> bool {
-    (0..4 * DEPTH).into_iter().all(|idx| (self.0[usize::from(idx)].is_room(idx / DEPTH)))
+    (0..Self::ROOMS).into_iter().all(|idx| (self.0[usize::from(idx)].is_room(Self::room_for(idx as u8))))
   }
 
   fn has_path(&self, from: Pos, to: Pos) -> bool {
@@ -100,11 +111,11 @@ impl State {
     path.iter().all(|p| !self.0.contains(&Pos::H(Hall(*p))))
   }
 
-  fn all_placed(&self, room: u8, from_depth: u8) -> bool {
-    for depth in from_depth + 1..DEPTH {
+  fn room_filled(&self, room: u8, from_depth: u8) -> bool {
+    for depth in from_depth + 1..Self::DEPTH {
       let candidate_room = Pos::R(Room { room, depth });
       let occupant = self.0.iter().position(|x| x == &candidate_room).unwrap();
-      if ((occupant as u8) / DEPTH) != room {
+      if Self::room_for(occupant as u8) != room {
         return false;
       }
     }
@@ -113,9 +124,7 @@ impl State {
 
   fn solve(
     mut self,
-    cost: usize,
-    instr: &mut Vec<(Pos, Pos)>,
-    visited: &mut HashMap<State, Option<usize>>,
+    visited: &mut HashMap<Self, Option<usize>>,
   ) -> Option<usize> {
     if let Some(cost) = visited.get(&self) {
       return *cost;
@@ -124,11 +133,11 @@ impl State {
       return Some(0);
     }
     let mut min_cost = None;
-    'outer: for idx in 0..4 * DEPTH {
-      let my_room = idx / DEPTH;
+    'outer: for idx in 0..Self::ROOMS {
+      let my_room = Self::room_for(idx);
       let src = self.0[idx as usize];
       if src.is_room(my_room) {
-        if self.all_placed(my_room, src.as_room().unwrap().depth) {
+        if self.room_filled(my_room, src.as_room().unwrap().depth) {
           continue;
         }
       }
@@ -142,18 +151,18 @@ impl State {
 
       if src.as_room().is_some() {
         for hall in 0..7 {
-          self.try_walk(idx, Pos::H(Hall(hall)), cost, instr, visited, &mut min_cost);
+          self.try_walk(idx, Pos::H(Hall(hall)), visited, &mut min_cost);
         }
       } else {
-        for depth in (0..DEPTH).rev() {
+        for depth in (0..Self::DEPTH).rev() {
           let candidate_room = Pos::R(Room { room: my_room, depth });
           if let Some(occupant) = self.0.iter().position(|x| x == &candidate_room) {
-            if ((occupant as u8) / DEPTH) != my_room {
+            if (Self::room_for(occupant as u8)) != my_room {
               continue 'outer;
             }
             continue;
           }
-          self.try_walk(idx, candidate_room, cost, instr, visited, &mut min_cost);
+          self.try_walk(idx, candidate_room, visited, &mut min_cost);
           break;
         }
       }
@@ -166,47 +175,40 @@ impl State {
     &mut self,
     idx: u8,
     tgt: Pos,
-    cost: usize,
-    instr: &mut Vec<(Pos, Pos)>,
-    visited: &mut HashMap<State, Option<usize>>,
+    visited: &mut HashMap<Self, Option<usize>>,
     min_cost: &mut Option<usize>,
   ) {
     let src = self.0[idx as usize];
-    instr.push((src, tgt));
     // temporary remove for has_path!
     self.0[idx as usize] = Pos::H(Hall(255));
     if self.has_path(src, tgt) {
-      let delta_cost = usize::from(distance(src, tgt)) * COST[(idx / DEPTH) as usize];
+      let delta_cost = usize::from(distance(src, tgt)) * COST[usize::from(Self::room_for(idx))];
       self.0[idx as usize] = tgt;
       let alt_cost = self
-        .solve(cost + delta_cost, instr, visited).map(|cost| cost + delta_cost);
-      if min_cost.is_none() {
-        *min_cost = alt_cost;
-      } else if alt_cost.is_some() && alt_cost.unwrap() < min_cost.unwrap() {
-        *min_cost = alt_cost;
-      }
+        .solve(visited).map(|cost| cost + delta_cost);
+      *min_cost = (*min_cost).or(alt_cost).min(alt_cost.or(*min_cost));
     }
     self.0[idx as usize] = src;
-    instr.pop();
   }
 }
 
 fn main() {
   // #############
   // #...........#
-  // ###B#C#B#D### 0  2  4  6
-  //   #A#D#C#A#   1  3  5  7
+  // ###B#C#B#D###
+  //   #A#D#C#A#
   //   #########
-  // let state = State([
-  //   Pos::R(Room { room: 0, depth: 1 }),
-  //   Pos::R(Room { room: 3, depth: 1 }),
-  //   Pos::R(Room { room: 0, depth: 0 }),
-  //   Pos::R(Room { room: 2, depth: 0 }),
-  //   Pos::R(Room { room: 1, depth: 0 }),
-  //   Pos::R(Room { room: 2, depth: 1 }),
-  //   Pos::R(Room { room: 1, depth: 1 }),
-  //   Pos::R(Room { room: 3, depth: 0 }),
-  // ]);
+  let state = State([
+    Pos::room(0, 1),
+    Pos::room(3, 1),
+    Pos::room(0, 0),
+    Pos::room(2, 0),
+    Pos::room(1, 0),
+    Pos::room(2, 1),
+    Pos::room(1, 1),
+    Pos::room(3, 0),
+  ]);
+  println!("sample {}", state.solve(&mut HashMap::new()).unwrap());
 
   // #############
   // #...........#
@@ -215,40 +217,42 @@ fn main() {
   //   #D#B#A#C#
   //   #A#D#C#A#   1  3  5  7
   //   #########
-  // let state = State([
-  //   Pos::R(Room { room: 0, depth: 3 }),
-  //   Pos::R(Room { room: 2, depth: 2 }),
-  //   Pos::R(Room { room: 3, depth: 1 }),
-  //   Pos::R(Room { room: 3, depth: 3 }),
-  //   Pos::R(Room { room: 0, depth: 0 }),
-  //   Pos::R(Room { room: 1, depth: 2 }),
-  //   Pos::R(Room { room: 2, depth: 0 }),
-  //   Pos::R(Room { room: 2, depth: 1 }),
-  //   Pos::R(Room { room: 1, depth: 0 }),
-  //   Pos::R(Room { room: 1, depth: 1 }),
-  //   Pos::R(Room { room: 2, depth: 3 }),
-  //   Pos::R(Room { room: 3, depth: 2 }),
-  //   Pos::R(Room { room: 0, depth: 1 }),
-  //   Pos::R(Room { room: 0, depth: 2 }),
-  //   Pos::R(Room { room: 1, depth: 3 }),
-  //   Pos::R(Room { room: 3, depth: 0 }),
-  // ]);
+  let state = State([
+    Pos::room(0, 3),
+    Pos::room(2, 2),
+    Pos::room(3, 1),
+    Pos::room(3, 3),
+    Pos::room(0, 0),
+    Pos::room(1, 2),
+    Pos::room(2, 0),
+    Pos::room(2, 1),
+    Pos::room(1, 0),
+    Pos::room(1, 1),
+    Pos::room(2, 3),
+    Pos::room(3, 2),
+    Pos::room(0, 1),
+    Pos::room(0, 2),
+    Pos::room(1, 3),
+    Pos::room(3, 0),
+  ]);
+  println!("sample real {}", state.solve(&mut HashMap::new()).unwrap());
 
   // #############
   // #...........#
   // ###B#B#C#D### 0  2  4  6
   //   #D#A#A#C#   1  3  5  7
   //   #########
-  // let state = State([
-  //   Pos::R(Room { room: 1, depth: 1 }),
-  //   Pos::R(Room { room: 2, depth: 1 }),
-  //   Pos::R(Room { room: 0, depth: 0 }),
-  //   Pos::R(Room { room: 1, depth: 0 }),
-  //   Pos::R(Room { room: 2, depth: 0 }),
-  //   Pos::R(Room { room: 3, depth: 1 }),
-  //   Pos::R(Room { room: 0, depth: 1 }),
-  //   Pos::R(Room { room: 3, depth: 0 }),
-  // ]);
+  let state = State([
+    Pos::room(1, 1),
+    Pos::room(2, 1),
+    Pos::room(0, 0),
+    Pos::room(1, 0),
+    Pos::room(2, 0),
+    Pos::room(3, 1),
+    Pos::room(0, 1),
+    Pos::room(3, 0),
+  ]);
+  println!("input {}", state.solve(&mut HashMap::new()).unwrap());
 
   // #############
   // #...........#
@@ -258,28 +262,22 @@ fn main() {
   //   #D#A#A#C#
   //   #########
   let state = State([
-    Pos::R(Room { room: 1, depth: 3 }),
-    Pos::R(Room { room: 2, depth: 2 }),
-    Pos::R(Room { room: 2, depth: 3 }),
-    Pos::R(Room { room: 3, depth: 1 }),
-
-    Pos::R(Room { room: 0, depth: 0 }),
-    Pos::R(Room { room: 1, depth: 0 }),
-    Pos::R(Room { room: 1, depth: 2 }),
-    Pos::R(Room { room: 2, depth: 1 }),
-
-    Pos::R(Room { room: 1, depth: 1 }),
-    Pos::R(Room { room: 2, depth: 0 }),
-    Pos::R(Room { room: 3, depth: 2 }),
-    Pos::R(Room { room: 3, depth: 3 }),
-
-    Pos::R(Room { room: 0, depth: 1 }),
-    Pos::R(Room { room: 0, depth: 2 }),
-    Pos::R(Room { room: 0, depth: 3 }),
-    Pos::R(Room { room: 3, depth: 0 }),
+    Pos::room(1, 3),
+    Pos::room(2, 2),
+    Pos::room(2, 3),
+    Pos::room(3, 1),
+    Pos::room(0, 0),
+    Pos::room(1, 0),
+    Pos::room(1, 2),
+    Pos::room(2, 1),
+    Pos::room(1, 1),
+    Pos::room(2, 0),
+    Pos::room(3, 2),
+    Pos::room(3, 3),
+    Pos::room(0, 1),
+    Pos::room(0, 2),
+    Pos::room(0, 3),
+    Pos::room(3, 0),
   ]);
-
-
-  let cost = state.solve(0, &mut Vec::new(), &mut HashMap::new()).unwrap();
-  println!("{}", cost);
+  println!("input real {}", state.solve(&mut HashMap::new()).unwrap());
 }
