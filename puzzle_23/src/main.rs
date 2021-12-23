@@ -114,7 +114,7 @@ impl State {
       return Some(0);
     }
     let mut min_cost = None;
-    for idx in 0..DEPTH * 4 {
+    'outer: for idx in 0..DEPTH * 4 {
       let my_room = idx / DEPTH;
       let src = self.0[idx as usize];
       if src.is_room(my_room) {
@@ -130,9 +130,10 @@ impl State {
         }
       }
       if let Pos::R(r) = src {
-        // blocked from the top
-        if r.depth == 1 && self.0.contains(&Pos::R(Room { room: r.room, depth: 0 })) {
-          continue;
+        for d in 0..r.depth {
+          if self.0.contains(&Pos::R(Room { room: r.room, depth: d })) {
+            continue 'outer;
+          }
         }
       }
 
@@ -141,33 +142,16 @@ impl State {
           self.try_walk(idx, Pos::H(Hall(hall)), cost, instr, visited, &mut min_cost);
         }
       } else {
-        let bottom = Pos::R(Room {
-          room: my_room,
-          depth: 1,
-        });
-        if let Some(occ) = self.0.iter().position(|x| x == &bottom) {
-          if ((occ as u8) / DEPTH) != my_room {
+        for depth in (0..DEPTH).rev() {
+          let candidate_room = Pos::R(Room { room: my_room, depth });
+          if let Some(occupant) = self.0.iter().position(|x| x == &candidate_room) {
+            if ((occupant as u8) / DEPTH) != my_room {
+              continue 'outer;
+            }
             continue;
           }
-          if self.0.contains(&Pos::R(Room {
-            room: my_room,
-            depth: 0,
-          })) {
-            continue;
-          }
-          // check if taken by my kind, then take top spot
-          let target = Pos::R(Room {
-            room: my_room,
-            depth: 0,
-          });
-          self.try_walk(idx, target, cost, instr, visited, &mut min_cost);
-        } else {
-          // take bottom spot
-          let target = Pos::R(Room {
-            room: my_room,
-            depth: 1,
-          });
-          self.try_walk(idx, target, cost, instr, visited, &mut min_cost);
+          self.try_walk(idx, candidate_room, cost, instr, visited, &mut min_cost);
+          break;
         }
       }
     }
@@ -189,7 +173,7 @@ impl State {
     // temporary remove for has_path!
     self.0[idx as usize] = Pos::H(Hall(255));
     if self.has_path(src, tgt) {
-      let delta_cost = usize::from(distance(src, tgt)) * COST[(idx / 2) as usize];
+      let delta_cost = usize::from(distance(src, tgt)) * COST[(idx / DEPTH) as usize];
       self.0[idx as usize] = tgt;
       let alt_cost = self
         .solve(cost + delta_cost, instr, visited).map(|cost| cost + delta_cost);
@@ -226,7 +210,16 @@ fn main() {
   // ###B#B#C#D### 0  2  4  6
   //   #D#A#A#C#   1  3  5  7
   //   #########
-  //let state = State([3, 5, 0, 2, 4, 7, 1, 6]);
+  // let state = State([
+  //   Pos::R(Room { room: 1, depth: 1 }),
+  //   Pos::R(Room { room: 2, depth: 1 }),
+  //   Pos::R(Room { room: 0, depth: 0 }),
+  //   Pos::R(Room { room: 1, depth: 0 }),
+  //   Pos::R(Room { room: 2, depth: 0 }),
+  //   Pos::R(Room { room: 3, depth: 1 }),
+  //   Pos::R(Room { room: 0, depth: 1 }),
+  //   Pos::R(Room { room: 3, depth: 0 }),
+  // ]);
   let cost = state.solve(0, &mut Vec::new(), &mut HashMap::new()).unwrap();
   println!("{}", cost);
 }
