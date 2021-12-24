@@ -1,0 +1,113 @@
+let digits = [i32; 14] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+let digits_off = [i32; 14] = [
+digits[0] + 8,
+digits[1] + 11,
+digits[2] + 2,
+digits[3] + 10,
+digits[4] + 1,
+digits[5] + 3,
+digits[6] + 14,
+digits[7] + 6,
+digits[8] + 1,
+digits[9] + 11,
+digits[10] + 6,
+digits[11] + 6,
+digits[12] + 2,
+digits[13] + 9,
+];
+// let mut z = 0;
+// z = add_digit(z, digits_off[0]);
+// z = add_digit(z, digits_off[1]);
+// z = add_digit(z, digits_off[2]);
+// z = replace_digit(1, z, digits_off[3]);
+// z = add_digit(z, digits_off[4]);
+// z = replace_digit(2, z, digits_off[5]);
+// z = replace_digit(-4, z, digits_off[6]);
+// z = add_digit(z, digits_off[7]);
+// z = add_digit(z, digits_off[8]);
+// z = add_digit(z, digits_off[9]);
+// z = replace_digit(3, z, digits_off[10]);
+// z = replace_digit(8, z, digits_off[11]);
+// z = replace_digit(9, z, digits_off[12]);
+// z = replace_digit(-7, z, digits_off[13]);
+
+/*
+let digits_off = [i32; 14] = [
+digits[0] + 8,
+digits[1] + 11,
+digits[2] + 2,
+digits[3] + 10,
+digits[4] + 1,
+digits[5] + 3,
+digits[6] + 14,
+digits[7] + 6,
+digits[8] + 1,
+digits[9] + 11,
+digits[10] + 6,
+digits[11] + 6,
+digits[12] + 2,
+digits[13] + 9,
+];
+*/
+//digits[2] == digits[3] + 8;
+//digits[4] == digits[5] + 2;
+//digits[1] == digits[6] + 3;
+//digits[9] + 5 == digits[10];
+//digits[8] == digits[11] + 5;
+//digits[7] + 4 == digits[12];
+//digits[13] + 1 == digits[0];
+// 24913111616151
+// 99919765949498
+
+// inp a - Read an input value and write it to variable a.
+// add a b - Add the value of a to the value of b, then store the result in variable a.
+// mul a b - Multiply the value of a by the value of b, then store the result in variable a.
+// div a b - Divide the value of a by the value of b, truncate the result to an integer, then store the result in variable a. (Here, "truncate" means to round the value toward zero.)
+// mod a b - Divide the value of a by the value of b, then store the remainder in variable a. (This is also called the modulo operation.)
+// eql a b - If the value of a and b are equal, then store the value 1 in variable a. Otherwise, store the value 0 in variable a.
+
+fn add_digit(mut z: i32, w: i32) -> i32 {
+  (z * 26) + w
+}
+
+fn replace_digit(delta: i32, mut z: i32, input: i32) -> i32 {
+  // inp w
+  if (z % 26) == input {
+    z / 26
+  } else {
+    (z / 26) * 26 + input + (delta);
+  }
+}
+
+fn must_match(delta: i32, mut z: i32, input: i32) -> i32 {
+  // inp w
+  if (z % 26) == input {
+    z / 26
+  } else {
+    panic!();
+  }
+}
+
+fn canonical(param1: i32, param2: i32, param3: i32, mut z: i32, w: i32) -> i32 {
+  // inp w
+  let mut x = 0;
+  let mut y = 0;
+  x *= 0;
+  x += z;
+  x %= 26;
+  z /= param1;
+  x += param2;
+  x = if x == w { 1 } else { 0 };
+  x = if x == 0 { 1 } else { 0 };
+  y *= 0;
+  y += 25;
+  y *= x;
+  y += 1;
+  z *= y;
+  y *= 0;
+  y += w;
+  y += param3;
+  y *= x;
+  z += y;
+  z
+}
